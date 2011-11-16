@@ -7,7 +7,7 @@ $wpue_config = wpue_getConfig();
 .wpue-field { float:left; margin:10px;}
 .wpue-filters {  padding:10px; border-bottom: 2px solid #888; }
 .wpue-filters .capabilities { margin-top:10px; }
-#wpue-fields-list li,label {cursor:move !important;}
+#wpue-fields-list li, #wpue-fields-list label {cursor:move !important;}
 </style>
 
 <div class="wrap">
