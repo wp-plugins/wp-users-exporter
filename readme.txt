@@ -1,17 +1,21 @@
-=== Plugin Name ===
+=== WP Users Exporter ===
 Contributors: rafael.chaves.freitas, leogermani
-Tags: users, export, exporter, user
+Tags: users, export, exporter, user, export users
 Requires at least: 3.0
 Tested up to: 3.2.1
 Stable tag: 0.1
 
-Simple plugin that allows you to export the users of your site in a spreadsheet, csv or html format with all metadatas.
+Simple and complete plugin that allows you to export the users of your site in a spreadsheet, csv or html format with all metadatas.
 
 == Description ==
 
 Simple plugin that allows you to export the users of your site in a spreadsheet, csv or html format with all metadatas.
 
+We have been looking for a good users exporter plugin for some time but none of them seems to accomplish this simple task, so we created this one. This plugin does everything you need when it comes to exporting your users.
+
 * choose the metadata you want to export
+* choose the label for each field
+* choose the order the fields will be exported
 * support for BuddyPress custom profile fields
 * support for Multi Site installation
 * Want to expor in another format? Its very easy (for a PHP developer) to support new formats.
