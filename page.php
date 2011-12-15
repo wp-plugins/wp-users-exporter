@@ -20,7 +20,7 @@ $wpue_config = wpue_getConfig();
         <h3><?php _e('Filters', 'wp-users-exporter'); ?>:</h3>
         <select name='filter'>
             <option value=''><?php _e('do not filter', 'wp-users-exporter')?></option>
-            <?php foreach ($wpue_config->userdata as $udata => $dataname): ?>
+            <?php foreach ($wpue_config->userdata as $udata => $dataname): if($udata === __ROLE__) continue; ?>
                 <option value='<?php echo $udata?>'><?php echo $dataname?></option>
             <?php endforeach;?>
             
@@ -85,7 +85,7 @@ $wpue_config = wpue_getConfig();
         <?php
         $first = true;
         $defaultConfig = wpue_getDefaultConfig(); 
-        foreach ($defaultConfig->userdata as $udata => $dataname): ?>
+        foreach ($defaultConfig->userdata as $udata => $dataname): if($udata === __ROLE__) continue;?>
             <option value='<?php echo $udata?>' <?php if((!isset($_POST['order']) && $first) || (isset($_POST['order']) && $_POST['order'] == $dataname)) echo 'checked="checked"'?>/><?php echo $dataname?></option>
         <?php 
              $first = false;

@@ -4,10 +4,12 @@ Plugin Name: WP Users Exporter
 Plugin URI: 
 Description: Users Exporter
 Author: hacklab
-Version: 0.1 
+Version: 1.0 
 Text Domain: 
 */
 define('WPUE_PREFIX', 'wpue-');
+define('__ROLE__','User_Role');
+
 
 add_action('init', 'wpue_init');
 register_activation_hook(__FILE__, 'wpue_activate');
@@ -98,7 +100,7 @@ function wpue_admin_menu(){
     wp_enqueue_script('jquery-ui-core');
     wp_enqueue_script('jquery-ui-sortable');
     add_submenu_page("tools.php", __('Export Users','wp-users-exporter'), __('Export Users','wp-users-exporter'), 'use-wp-users-exporter', WPUE_PREFIX.'wpue-main', 'wpue_page');
-    add_options_page(__('WP Users Exporter','wp-users-exporter'), __('Exportador de Usuários', 'wp-users-exporter'), 'manage-wp-users-exporter', 'wpue-config', 'wpue_config_page');    
+    add_options_page(__('WP Users Exporter','wp-users-exporter'), __('WP Users Exporter', 'wp-users-exporter'), 'manage-wp-users-exporter', 'wpue-config', 'wpue_config_page');    
 
 }
 
@@ -186,6 +188,7 @@ function wpue_getDefaultConfig(){
     $metakeys = $wpdb->get_col("SELECT DISTINCT meta_key FROM $wpdb->usermeta");
     
     $wpue_options->userdata = array(
+        __ROLE__ => __('Role','wp-users-exporter'),
     	'ID' => __('ID','wp-users-exporter'),
         'user_login' => __('Login','wp-users-exporter'),
         'user_nicename' => __('Nice Name','wp-users-exporter'),
@@ -229,6 +232,18 @@ function wpue_getUsers(){
     if(!in_array('ID', $udata))
         $udata[] = 'ID';
         
+    $DISPLAY_ROLE = in_array(__ROLE__, $udata);
+    
+    $roles = array();
+    
+    if($DISPLAY_ROLE){
+        unset($udata[array_search(__ROLE__,$udata)]);
+        
+        $roles = new WP_Roles;
+        $roles = array_keys($roles->roles);
+        
+    }
+    
         
     
     $cols = implode(',' , $udata);
@@ -239,6 +254,7 @@ function wpue_getUsers(){
     if(isset($_POST['filter']) && trim($_POST['filter']) != ''){
         $field = $_POST['filter'];
         $value = $_POST['filter_value'];
+        
         if($field[0] == '_'){
             $field = substr($field, 1);
             switch($_POST['operator']){
@@ -295,7 +311,7 @@ function wpue_getUsers(){
                    )
             $filter
         ORDER BY $orderby $oby";
-                        
+              
     $users = $wpdb->get_results($q);
     
     $wpue_config = wpue_getConfig();
@@ -303,9 +319,10 @@ function wpue_getUsers(){
     // limpa o usuário, removendo as propriedades que não foram selecionadas no formulario
     // de exportação
     $result = array();
-    foreach($users as $user){
+    foreach($users as $index => $user){
         $user_ids[] = $user->ID;
         $result[$user->ID] = $user;
+        unset($users[$index]);
     }
     
     unset($users);
@@ -313,8 +330,13 @@ function wpue_getUsers(){
     // seleciona os metadados to usuário
     $user_ids = implode(',', $user_ids);
     
+    $user_ids = $user_ids ? $user_ids : '-1';
+    
     $metakeys = array();
     $metakeys = array_keys($wpue_config->metadata);
+    if(!in_array($wpdb->prefix.'capabilities', $metakeys))
+            $metakeys[] = $wpdb->prefix.'capabilities';
+    
     $metakeys = "'".implode("','", $metakeys)."'";
     
     $qm = "
@@ -328,12 +350,33 @@ function wpue_getUsers(){
     		meta_key IN ($metakeys) AND
     		user_id IN ($user_ids)";
     
-    $rs = mysql_query($qm);
+    $rs = mysql_query($qm) or die($qm);
     while ($metadata = mysql_fetch_object($rs)){
-    
         $meta_key = $metadata->meta_key;
         $meta_value = $metadata->meta_value;
         $user_id = $metadata->user_id;
+        
+        if(is_serialized($meta_value)){
+            $meta_value = unserialize ($meta_value);
+            
+            if($meta_key == $wpdb->prefix.'capabilities' && $DISPLAY_ROLE){
+                $user_roles = '';
+                $capabilities = array_keys($meta_value);
+                foreach($capabilities as $i => $cap){
+                    if(in_array($cap, $roles))
+                        $user_roles = $user_roles ? ', '.$cap : $cap;
+                    
+                    if(!$meta_value[$cap])
+                        unset($capabilities[$i]);
+                }
+                $__role = __ROLE__;
+                $result[$user_id]->$__role = $user_roles;
+                
+                $meta_value = $capabilities;
+            }
+        }
+        
+        //if()
         
         $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
         
@@ -427,3 +470,4 @@ function wpue_bp_getProfileFields(){
 }
 
 /* BUDDYPRESS EDITION - end */
+
