@@ -4,7 +4,7 @@ Plugin Name: WP Users Exporter
 Plugin URI: 
 Description: Users Exporter
 Author: hacklab
-Version: 1.0
+Version: 1.1
 Text Domain:
 */
 define('WPUE_PREFIX', 'wpue-');
@@ -17,8 +17,10 @@ register_deactivation_hook(__FILE__, 'wpue_deactivate');
 
 function wpue_init(){
     
-    require_once dirname(__FILE__).'/A_UserExporter.class.php';
+    if (!is_admin())
+        return;
     
+    require_once dirname(__FILE__).'/A_UserExporter.class.php';
     
     $dir = opendir(dirname(__FILE__).'/exporters/');
     while (false !== ($d = readdir($dir))){
@@ -31,15 +33,22 @@ function wpue_init(){
     if(isset($_POST[WPUE_PREFIX.'action'])){
         switch($_POST[WPUE_PREFIX.'action']){
             case 'export-users':
-                if(isset($_POST['roles']) && isset($_POST['exporter'])){
+                if(current_user_can('use-wp-users-exporter') && isset($_POST['roles']) && isset($_POST['exporter'])){
                     $result = wpue_getUsers();
-                    eval('$exporter = new '.$_POST['exporter'].'($result);');
-                    $exporter->export();
-                    die;
+                    $requested_exporter = $_POST['exporter'];
+                    if (class_exists($requested_exporter) && is_subclass_of($requested_exporter, 'A_UserExporter')) {
+                        eval('$exporter = new '.$requested_exporter.'($result);');
+                        $exporter->export();
+                        die;
+                    }
                 }
             break;
             
             case 'save-config':
+                
+                if (!current_user_can('manage-wp-users-exporter'))
+                    break;
+                
                 $wpue_options = wpue_getDefaultConfig();
                 $wpue_config = new stdClass();
                 global $wp_roles;
@@ -225,7 +234,7 @@ function wpue_getUsers(){
     $roles = $_POST['roles'];
     
     foreach ($roles as $k=>$role)
-        $roles[$k] = "meta_value LIKE '%\"$role\"%'";
+        $roles[$k] = $wpdb->prepare("meta_value LIKE %s", "%\"$role\"%");
         
     $metakeys = implode(' OR ', $roles);
     $udata = $_POST['userdata'];
@@ -259,32 +268,35 @@ function wpue_getUsers(){
             $field = substr($field, 1);
             switch($_POST['operator']){
                 case 'eq':
-                    $filter = "AND ID IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key='$field' AND meta_value = '$value')";
+                    $filter = $wpdb->prepare("AND ID IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key = %s AND meta_value = %s)", $field, $value);
                 break;
                 case 'dif':
-                    $filter = "AND ID NOT IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key='$field' AND meta_value = '$value')";
+                    $filter = $wpdb->prepare("AND ID NOT IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key= %s AND meta_value = %s)", $field, $value);
                 break;
                 case 'like':
-                    $filter = "AND ID IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key='$field' AND meta_value LIKE '%$value%')";
+                    $filter = $wpdb->prepare("AND ID IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key= %s AND meta_value LIKE %s)", $field, '%'.$value.'%');
                 break;
                 case 'not-like':
-                    $filter = "AND ID NOT IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key='$field' AND meta_value LIKE '%$value%')";
+                    $filter = $wpdb->prepare("AND ID NOT IN (SELECT user_id FROM $wpdb->usermeta WHERE meta_key= %s AND meta_value LIKE %s)", $field, '%'.$value.'%');
                 break;
             }
         }else {
-            switch($_POST['operator']){
-                case 'eq':
-                    $filter = "AND $field = '$value')";
-                break;
-                case 'dif':
-                    $filter = "AND $field <> '$value')";
-                break;
-                case 'like':
-                    $filter = "AND $field LIKE '%$value%')";
-                break;
-                case 'not-like':
-                    $filter = "AND $field NOT LIKE '%$value%')";
-                break;
+            $validFields = array('ID', 'user_login', 'user_pass', 'user_nicename', 'user_email', 'user_url', 'user_registered', 'user_activation_key', 'user_status', 'display_name');
+            if (in_array($field, $validFields)) {
+                switch($_POST['operator']){
+                    case 'eq':
+                        $filter = $wpdb->prepare("AND $field = %s", $value);
+                    break;
+                    case 'dif':
+                        $filter = $wpdb->prepare("AND $field <> %s", $value);
+                    break;
+                    case 'like':
+                        $filter = $wpdb->prepare("AND $field LIKE %s", '%'.$value.'%');
+                    break;
+                    case 'not-like':
+                        $filter = $wpdb->prepare("AND $field NOT LIKE %s", '%'.$value.'%');
+                    break;
+                }
             }
         }
         
@@ -313,7 +325,7 @@ function wpue_getUsers(){
         ORDER BY $orderby $oby";
               
     $users = $wpdb->get_results($q);
-    
+
     $wpue_config = wpue_getConfig();
     $user_ids = array();
     // limpa o usuário, removendo as propriedades que não foram selecionadas no formulario
