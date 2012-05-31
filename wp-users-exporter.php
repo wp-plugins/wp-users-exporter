@@ -4,7 +4,7 @@ Plugin Name: WP Users Exporter
 Plugin URI: 
 Description: Users Exporter
 Author: hacklab
-Version: 1.1
+Version: 1.2
 Text Domain:
 */
 define('WPUE_PREFIX', 'wpue-');
@@ -34,10 +34,10 @@ function wpue_init(){
         switch($_POST[WPUE_PREFIX.'action']){
             case 'export-users':
                 if(current_user_can('use-wp-users-exporter') && isset($_POST['roles']) && isset($_POST['exporter'])){
-                    $result = wpue_getUsers();
+                    
                     $requested_exporter = $_POST['exporter'];
                     if (class_exists($requested_exporter) && is_subclass_of($requested_exporter, 'A_UserExporter')) {
-                        eval('$exporter = new '.$requested_exporter.'($result);');
+                        eval('$exporter = new '.$requested_exporter.'();');
                         $exporter->export();
                         die;
                     }
@@ -56,6 +56,8 @@ function wpue_init(){
                 foreach ($wp_roles->roles as $r) {
             		if ($r['name'] != 'Administrator') {
 	            		$role = get_role(strtolower($r['name']));
+                        if (!is_object($role))
+                            continue;
 	            		if ($_POST[$r['name']]) {
 	            			$role->add_cap('use-wp-users-exporter');
 	            		} else {
@@ -228,9 +230,18 @@ function wpue_getDefaultConfig(){
     return $wpue_options;
 }
 
-
-function wpue_getUsers(){
+/* Get users and save it to a temp file
+ * return: string temp file path
+ * We use this approach to avoid exceeding the memory limit when we got tens of thousands of users
+ */ 
+function wpue_getUsers_to_tmpfile(){
     global $wpdb;
+    
+    $tmpfile = tempnam(sys_get_temp_dir(), 'wp-users-exporter');
+    
+    //To increase speed and avoid memory limit, we do the querys and savings in steps of:
+    $step = 1000;
+    
     $roles = $_POST['roles'];
     
     foreach ($roles as $k=>$role)
@@ -305,11 +316,9 @@ function wpue_getUsers(){
         $filter = '';
     }
     
-    
+
     // seleciona os usuários
-    $q = "
-    	SELECT 
-    		$cols
+    $base_q = "
     	FROM 
             $wpdb->users 
         WHERE 
@@ -323,125 +332,150 @@ function wpue_getUsers(){
                    )
             $filter
         ORDER BY $orderby $oby";
-              
-    $users = $wpdb->get_results($q);
-
-    $wpue_config = wpue_getConfig();
-    $user_ids = array();
-    // limpa o usuário, removendo as propriedades que não foram selecionadas no formulario
-    // de exportação
-    $result = array();
-    foreach($users as $index => $user){
-        $user_ids[] = $user->ID;
-        $result[$user->ID] = $user;
-        unset($users[$index]);
-    }
     
-    unset($users);
+    $count_q = "SELECT count(ID) $base_q";
     
-    // seleciona os metadados to usuário
-    $user_ids = implode(',', $user_ids);
+    $count = $wpdb->get_var($count_q);
     
-    $user_ids = $user_ids ? $user_ids : '-1';
+    for ($ii = 0; $ii <= $count; $ii += $step) {
     
-    $metakeys = array();
-    $metakeys = array_keys($wpue_config->metadata);
-    if(!in_array($wpdb->prefix.'capabilities', $metakeys))
-            $metakeys[] = $wpdb->prefix.'capabilities';
-    
-    $metakeys = "'".implode("','", $metakeys)."'";
-    
-    $qm = "
-    	SELECT
-    		user_id,
-    		meta_key,
-    		meta_value
-    	FROM
-    		$wpdb->usermeta
-    	WHERE
-    		meta_key IN ($metakeys) AND
-    		user_id IN ($user_ids)";
-    
-    $rs = mysql_query($qm) or die($qm);
-    while ($metadata = mysql_fetch_object($rs)){
-        $meta_key = $metadata->meta_key;
-        $meta_value = $metadata->meta_value;
-        $user_id = $metadata->user_id;
+        $q = "SELECT $cols $base_q LIMIT $step OFFSET $ii";
         
-        if(is_serialized($meta_value)){
-            $meta_value = unserialize ($meta_value);
+                  
+        $users = $wpdb->get_results($q);
+
+        $wpue_config = wpue_getConfig();
+        $user_ids = array();
+        // limpa o usuário, removendo as propriedades que não foram selecionadas no formulario
+        // de exportação
+        unset($result);
+        $result = array();
+        foreach($users as $index => $user){
+            $user_ids[] = $user->ID;
+            $result[$user->ID] = $user;
+            unset($users[$index]);
+        }
+        
+        unset($users);
+        
+        // seleciona os metadados to usuário
+        $user_ids = implode(',', $user_ids);
+        
+        $user_ids = $user_ids ? $user_ids : '-1';
+        
+        $metakeys = array();
+        $metakeys = array_keys($wpue_config->metadata);
+        if(!in_array($wpdb->prefix.'capabilities', $metakeys))
+                $metakeys[] = $wpdb->prefix.'capabilities';
+        
+        $metakeys = "'".implode("','", $metakeys)."'";
+        
+        $qm = "
+            SELECT
+                user_id,
+                meta_key,
+                meta_value
+            FROM
+                $wpdb->usermeta
+            WHERE
+                meta_key IN ($metakeys) AND
+                user_id IN ($user_ids)";
+        
+        $rs = mysql_query($qm) or die($qm);
+        while ($metadata = mysql_fetch_object($rs)){
+            $meta_key = $metadata->meta_key;
+            $meta_value = $metadata->meta_value;
+            $user_id = $metadata->user_id;
             
-            if($meta_key == $wpdb->prefix.'capabilities' && $DISPLAY_ROLE){
-                $user_roles = '';
-                $capabilities = array_keys($meta_value);
-                foreach($capabilities as $i => $cap){
-                    if(in_array($cap, $roles))
-                        $user_roles = $user_roles ? ', '.$cap : $cap;
-                    
-                    if(!$meta_value[$cap])
-                        unset($capabilities[$i]);
-                }
-                $__role = __ROLE__;
-                $result[$user_id]->$__role = $user_roles;
+            if(is_serialized($meta_value)){
+                $meta_value = unserialize ($meta_value);
                 
-                $meta_value = $capabilities;
+                if($meta_key == $wpdb->prefix.'capabilities' && $DISPLAY_ROLE){
+                    $user_roles = '';
+                    $capabilities = array_keys($meta_value);
+                    foreach($capabilities as $i => $cap){
+                        if(in_array($cap, $roles))
+                            $user_roles = $user_roles ? ', '.$cap : $cap;
+                        
+                        if(!$meta_value[$cap])
+                            unset($capabilities[$i]);
+                    }
+                    $__role = __ROLE__;
+                    $result[$user_id]->$__role = $user_roles;
+                    
+                    $meta_value = $capabilities;
+                }
+            }
+            
+            $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
+            
+            if(is_object($result[$user_id]->$meta_key))
+                $result[$user_id]->$meta_key = (array) $result[$user_id]->$meta_key;
+                
+            if(is_array($result[$user_id]->$meta_key))
+                $result[$user_id]->$meta_key = implode(', ', $result[$user_id]->$meta_key);
+                
+        }
+        
+        
+        /* BUDDYPRESS EDITION */
+        
+        if(wpue_isBP()){
+            $field_ids = implode(',', $wpue_config->bp_fields);
+            
+            $bp_fields = wpue_bp_getProfileFields();
+            
+            $bp_data_query = "
+            SELECT 
+                * 
+            FROM 
+                {$wpdb->prefix}bp_xprofile_data 
+            WHERE 
+                user_id IN ($user_ids) AND 
+                field_id IN ($field_ids)
+            ORDER BY 
+                user_id ASC";
+            
+            
+            $bp_data = $wpdb->get_results($bp_data_query);
+            
+            
+            foreach ($bp_data as $data){
+                $field = 'bp_'.$data->field_id;
+                if($bp_fields[$data->field_id]->type == 'datebox')
+                    $data->value = date($wpue_config->date_format, $data->value);
+                    
+                if(is_serialized($data->value))
+                    $data->value = unserialize($data->value);
+                    
+                if(is_object($data->value))
+                    $data->value = (array) $data->value;
+                
+                if(is_array($data->value))
+                    $data->value = implode(', ', $data->value);
+                    
+                $result[$data->user_id]->$field = $data->value;
             }
         }
         
-        //if()
+        $result_string = '';
         
-        $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
+        foreach ($result as $id => $r) {
+            $result_string .= str_replace("\r\n", '||BR||', serialize($r)) . "\n";
+        }
         
-        if(is_object($result[$user_id]->$meta_key))
-    		$result[$user_id]->$meta_key = (array) $result[$user_id]->$meta_key;
-    		
-    	if(is_array($result[$user_id]->$meta_key))
-    		$result[$user_id]->$meta_key = implode(', ', $result[$user_id]->$meta_key);
-    		
-    }
+        
+        //$result_string = str_replace("\r", '', $result_string);
+        file_put_contents($tmpfile, $result_string, FILE_APPEND);
+        
+        
+        
+        
+    
+    } // end for
     
     
-    /* BUDDYPRESS EDITION */
-    
-    if(wpue_isBP()){
-    	$field_ids = implode(',', $wpue_config->bp_fields);
-    	
-    	$bp_fields = wpue_bp_getProfileFields();
-    	
-    	$bp_data_query = "
-    	SELECT 
-    		* 
-    	FROM 
-    		{$wpdb->prefix}bp_xprofile_data 
-    	WHERE 
-    		user_id IN ($user_ids) AND 
-    		field_id IN ($field_ids)
-    	ORDER BY 
-    		user_id ASC";
-		
-		
-    	$bp_data = $wpdb->get_results($bp_data_query);
-    	
-    	
-    	foreach ($bp_data as $data){
-    		$field = 'bp_'.$data->field_id;
-    		if($bp_fields[$data->field_id]->type == 'datebox')
-    			$data->value = date($wpue_config->date_format, $data->value);
-    			
-    		if(is_serialized($data->value))
-    			$data->value = unserialize($data->value);
-    			
-    		if(is_object($data->value))
-    			$data->value = (array) $data->value;
-    		
-    		if(is_array($data->value))
-    			$data->value = implode(', ', $data->value);
-    			
-    		$result[$data->user_id]->$field = $data->value;
-    	}
-    }
-    
-    return $result;
+    return $tmpfile;
 }
 
 

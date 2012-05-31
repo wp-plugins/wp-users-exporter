@@ -2,6 +2,7 @@
 abstract class A_UserExporter{
     protected $users;
     protected $filename;
+    protected $tmpfile;
     
     protected $cols = array();
     protected $descriptions = array();
@@ -17,7 +18,7 @@ abstract class A_UserExporter{
     
     protected abstract function printUser($user);
     
-    public function __construct(array $users, $filename = ''){
+    public function __construct($filename = ''){
         $_cols = array();
         $wpue_config = wpue_getConfig();
         if(isset($_POST['userdata']))
@@ -42,8 +43,9 @@ abstract class A_UserExporter{
         		}
         			
         }
-            
-        $this->users = $users;
+        
+        $this->tmpfile = wpue_getUsers_to_tmpfile();
+        
         $this->filename = $filename ? $filename : 'users-'.date('Y-m-d');
         
         foreach($_POST['display_order'] as $field)
@@ -53,18 +55,34 @@ abstract class A_UserExporter{
     
     public final function export(){
         $this->printHeader();
-        $keys = array_keys($this->users);
-         
-        foreach ($keys as $user_id){
-            $user = $this->users[$user_id];
-            $this->printUser($user);
-            unset($this->users[$user_id]);
+        
+        $file_handle = fopen($this->tmpfile, "r");
+        
+        while (!feof($file_handle)) {
+            
+            $_user = fgets($file_handle);
+            $_user = str_replace('||BR||', "\r\n", $_user);
+            //if (is_serialized($_user)) {
+                $user = unserialize($_user);
+                $this->printUser($user);
+            //}
+            
         }
+        
+        fclose($file_handle);
+        
         $this->printFooter();
+        
+        $this->deleteTempFile();
         
         die;
     }
     
+    public function deleteTempFile() {
+    
+        unlink($this->tmpfile);
+    
+    }
     
     public final static function activate(){
         $class = get_called_class();
