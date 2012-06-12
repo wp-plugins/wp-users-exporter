@@ -48,9 +48,33 @@ abstract class A_UserExporter{
         
         $this->filename = $filename ? $filename : 'users-'.date('Y-m-d');
         
-        foreach($_POST['display_order'] as $field)
-            if(in_array($field, $_cols))
+        foreach ($_POST['display_order'] as $field) {
+            if (in_array($field, $_cols)) {
                 $this->cols[] = $field;
+            }
+        }
+            
+        $this->saveFieldsOrder();
+    }
+
+    /**
+     * Save the user selected fields order to 
+     * reuse it the next time the export page is
+     * loaded.
+     * 
+     * @return null
+     */
+    protected function saveFieldsOrder() {
+        update_option('wpue_fields_order', $this->cols);
+    }
+    
+    /**
+     * Return saved fields order.
+     * 
+     * @return null|array
+     */
+    public static function getFieldsOrder() {
+        return get_option('wpue_fields_order');
     }
     
     public final function export(){

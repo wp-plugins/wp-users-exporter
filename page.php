@@ -110,7 +110,18 @@ $wpue_config = wpue_getConfig();
 
 <script type="text/javascript">
     jQuery(document).ready(function(){
+        order = <?php echo json_encode(A_UserExporter::getFieldsOrder()); ?>;
+       
+        // sort fields based on the last order used by the user if any
+        if (order) {
+            jQuery("#wpue-fields-list li").sort(sortFields).appendTo('#wpue-fields-list');
+        }
+        
         jQuery("#wpue-fields-list").sortable();
     });
+    
+    function sortFields(a, b) {
+        return order.indexOf(jQuery(a).find('input[type=hidden]').val()) > order.indexOf(jQuery(b).find('input[type=hidden]').val()) ? 1 : -1;
+    }
 </script>
 </div>
