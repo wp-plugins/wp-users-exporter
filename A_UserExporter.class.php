@@ -20,17 +20,18 @@ abstract class A_UserExporter{
     
     public function __construct($filename = ''){
         $_cols = array();
+        $_descriptions = array();
         $wpue_config = wpue_getConfig();
         if(isset($_POST['userdata']))
             foreach ($_POST['userdata'] as $col){
                 $_cols[] = $col;
-                $this->descriptions[$col] = $wpue_config->userdata[$col];
+                $_descriptions[$col] = $wpue_config->userdata[$col];
             }
             
         if(isset($_POST['metadata']))
             foreach ($_POST['metadata'] as $col){
                 $_cols[] = $col;
-                $this->descriptions[$col] = $wpue_config->metadata[$col];
+                $_descriptions[$col] = $wpue_config->metadata[$col];
             }
             
         if(wpue_isBP()){
@@ -39,7 +40,7 @@ abstract class A_UserExporter{
         		if(isset($_POST['bp_fields']) && in_array($field_id, $_POST['bp_fields'])){
         			$col = 'bp_'.$field_id;
         			$_cols[] = $col;
-        			$this->descriptions[$col] = $bp_fields[$field_id]->name;
+        			$_descriptions[$col] = $bp_fields[$field_id]->name;
         		}
         			
         }
@@ -51,6 +52,7 @@ abstract class A_UserExporter{
         foreach ($_POST['display_order'] as $field) {
             if (in_array($field, $_cols)) {
                 $this->cols[] = $field;
+                $this->descriptions[] = $_descriptions[$field];
             }
         }
             
