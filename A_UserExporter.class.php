@@ -87,14 +87,15 @@ abstract class A_UserExporter{
         while (!feof($file_handle)) {
             
             $_user = fgets($file_handle);
-            $_user = str_replace('||BR||', "\r\n", $_user);
-            //if (is_serialized($_user)) {
-                $user = unserialize($_user);
-                $this->printUser($user);
-            //}
+            $user = unserialize($_user);
             
+            foreach ($user as $key => $value) {
+                $user->$key = str_replace('||BR||', '\n', $value);
+            }
+            
+            $this->printUser($user);
         }
-        
+
         fclose($file_handle);
         
         $this->printFooter();

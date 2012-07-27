@@ -461,9 +461,12 @@ function wpue_getUsers_to_tmpfile(){
         $result_string = '';
         
         foreach ($result as $id => $r) {
-            $result_string .= str_replace("\r\n", '||BR||', serialize($r)) . "\n";
+            foreach ($r as $key => $value) {
+                $r->$key = str_replace(array("\r\n", "\n", "\r"), '||BR||', $value);
+            }
+            
+            $result_string .= serialize($r) . "\n";
         }
-        
         
         //$result_string = str_replace("\r", '', $result_string);
         file_put_contents($tmpfile, $result_string, FILE_APPEND);
