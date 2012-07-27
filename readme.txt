@@ -3,7 +3,7 @@ Contributors: rafael.chaves.freitas, leogermani
 Tags: users, export, exporter, user, export users
 Requires at least: 3.0
 Tested up to: 3.3.1
-Stable Tag: 1.2
+Stable Tag: 1.3
 
 Simple and complete plugin that allows you to export the users of your site in a spreadsheet, csv or html format with all metadatas.
 
@@ -37,6 +37,9 @@ This plugin creates two pages on your admin panel.
 
 
 == Changelog ==
+
+27 Jul 2012 - 1.3
+Better handling with line breaks
 
 04 Jul 2012 - 1.2
 change the way script generates table, using a temporary file in the disk instead of loading everything in the memory. This avoid memory limit problems when we have lots of users
