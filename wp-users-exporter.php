@@ -406,7 +406,9 @@ function wpue_getUsers_to_tmpfile(){
                     $meta_value = $capabilities;
                 }
             }
-            
+
+            $meta_value = apply_filters('wpue_meta_value', $meta_value, $meta_key);
+
             $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
             
             if(is_object($result[$user_id]->$meta_key))
@@ -416,8 +418,7 @@ function wpue_getUsers_to_tmpfile(){
                 $result[$user_id]->$meta_key = implode(', ', $result[$user_id]->$meta_key);
                 
         }
-        
-        
+
         /* BUDDYPRESS EDITION */
         
         if(wpue_isBP()){
