@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: WP Users Exporter
-Plugin URI: 
+Plugin URI: https://wordpress.org/plugins/wp-users-exporter/
 Description: Users Exporter
 Author: hacklab
 Version: 1.4
