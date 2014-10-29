@@ -4,7 +4,7 @@ Plugin Name: WP Users Exporter
 Plugin URI: https://wordpress.org/plugins/wp-users-exporter/
 Description: Users Exporter
 Author: hacklab
-Version: 1.4
+Version: 1.4.1
 Text Domain:
 */
 define('WPUE_PREFIX', 'wpue-');
@@ -263,9 +263,9 @@ function wpue_getUsers_to_tmpfile(){
         $roles = array_keys($roles->roles);
         
     }
-    
-        
-    
+
+
+
     $cols = implode(',' , $udata);
     $orderby = $_POST['order'];
     $oby = $_POST['oby'] == 'ASC' ? 'ASC' : 'DESC';
@@ -310,12 +310,12 @@ function wpue_getUsers_to_tmpfile(){
                 }
             }
         }
-        
-        
+
+
     }else{
         $filter = '';
     }
-    
+
 
     // seleciona os usuários
     $base_q = "
@@ -381,8 +381,8 @@ function wpue_getUsers_to_tmpfile(){
                 meta_key IN ($metakeys) AND
                 user_id IN ($user_ids)";
         
-        $rs = mysql_query($qm) or die($qm);
-        while ($metadata = mysql_fetch_object($rs)){
+        $data = $wpdb->get_results($qm);
+        foreach ($data as $metadata){
             $meta_key = $metadata->meta_key;
             $meta_value = $metadata->meta_value;
             $user_id = $metadata->user_id;
@@ -408,6 +408,10 @@ function wpue_getUsers_to_tmpfile(){
             }
 
             $meta_value = apply_filters('wpue_meta_value', $meta_value, $meta_key);
+
+            if (is_array($meta_value)) {
+                $meta_value = join(' ', $meta_value);
+            }
 
             $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
             
