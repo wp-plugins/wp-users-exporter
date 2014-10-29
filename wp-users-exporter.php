@@ -4,7 +4,7 @@ Plugin Name: WP Users Exporter
 Plugin URI: https://wordpress.org/plugins/wp-users-exporter/
 Description: Users Exporter
 Author: hacklab
-Version: 1.4
+Version: 1.4.1
 Text Domain:
 */
 define('WPUE_PREFIX', 'wpue-');
