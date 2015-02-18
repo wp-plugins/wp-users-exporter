@@ -63,6 +63,11 @@ $wpue_config = wpue_getConfig();
             <li><input type="hidden" name="display_order[]" value="<?php echo $udata?>" /><label><input type='checkbox' name='metadata[]' value='<?php echo $udata?>' <?php if(!isset($_POST['userdata']) || isset($_POST['metadata'][$udata])) echo 'checked="checked"'; ?>/><?php echo $dataname?></label></li>
         <?php endforeach;?>
         </ul>
+        
+        <a href="<?php echo admin_url('options-general.php?page=wpue-config'); ?>">
+        <?php _e('Visit settings page to choose what fields you see here','wp-users-exporter')?>
+        </a>
+        
     </div>
     <div class='wpue-field'>
         <h4><?php _e('File format','wp-users-exporter')?>:</strong></h4>
