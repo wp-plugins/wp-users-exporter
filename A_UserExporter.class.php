@@ -55,7 +55,6 @@ abstract class A_UserExporter{
                 $this->descriptions[] = $_descriptions[$field];
             }
         }
-            
         $this->saveFieldsOrder();
     }
 
@@ -88,6 +87,8 @@ abstract class A_UserExporter{
             
             $_user = fgets($file_handle);
             $user = unserialize($_user);
+            
+            if (!$user) continue;
             
             foreach ($user as $key => $value) {
                 $user->$key = str_replace('||BR||', '\n', $value);

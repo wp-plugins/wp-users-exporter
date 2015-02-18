@@ -21,8 +21,8 @@ class UE_XLS extends A_UserExporter{
          
         
         echo '<table><tr>';
-        foreach ($this->cols as $col)
-            echo "<th>".htmlentities(utf8_decode($this->descriptions[$col]))."</th>";
+        foreach ($this->descriptions as $description)
+            echo "<th>".htmlentities($description, ENT_QUOTES, 'UTF-8')."</th>";
             
         echo '</tr><tbody>';
     }
@@ -34,7 +34,7 @@ class UE_XLS extends A_UserExporter{
     protected function printUser($user){
         echo '<tr>';
         foreach ($this->cols as $col){
-           $data = htmlentities(utf8_decode($user->$col));
+           $data = htmlentities($user->$col, ENT_QUOTES, 'UTF-8');
            echo "<td>$data</td>"; 
         }
         echo '</tr>';

@@ -18,24 +18,24 @@ class UE_HTML extends A_UserExporter{
          
         
         echo '<table style="font-size:10px;" border=1><tr>';
-        foreach ($this->cols as $col)
-            echo "<th>".htmlentities(utf8_decode($this->descriptions[$col]))."</th>";
+        foreach ($this->descriptions as $description)
+            echo "<th>".htmlentities($description, ENT_QUOTES, 'UTF-8')."</th>";
             
-        echo '</tr><tbody>
-    </body>
-</html>';
+        echo '</tr><tbody>';
     }
     
     protected function printFooter(){
-        echo '</tbody></table>';
+        echo '</tbody></table></body></html>';
     }
     
     protected function printUser($user){
+        
         echo '<tr>';
         foreach ($this->cols as $col){
-           $data = htmlentities(utf8_decode($user->$col));
+           $data = htmlentities($user->$col, ENT_QUOTES, 'UTF-8');
            echo "<td>$data</td>"; 
         }
         echo '</tr>';
+        
     }
 }
