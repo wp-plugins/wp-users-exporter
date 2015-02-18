@@ -4,7 +4,7 @@ Plugin Name: WP Users Exporter
 Plugin URI: https://wordpress.org/plugins/wp-users-exporter/
 Description: Users Exporter
 Author: hacklab
-Version: 1.4.1
+Version: 1.4.2
 Text Domain:
 */
 define('WPUE_PREFIX', 'wpue-');
@@ -263,9 +263,9 @@ function wpue_getUsers_to_tmpfile(){
         $roles = array_keys($roles->roles);
         
     }
-
-
-
+    
+        
+    
     $cols = implode(',' , $udata);
     $orderby = $_POST['order'];
     $oby = $_POST['oby'] == 'ASC' ? 'ASC' : 'DESC';
@@ -310,12 +310,12 @@ function wpue_getUsers_to_tmpfile(){
                 }
             }
         }
-
-
+        
+        
     }else{
         $filter = '';
     }
-
+    
 
     // seleciona os usuários
     $base_q = "
@@ -395,7 +395,7 @@ function wpue_getUsers_to_tmpfile(){
                     $capabilities = array_keys($meta_value);
                     foreach($capabilities as $i => $cap){
                         if(in_array($cap, $roles))
-                            $user_roles = $user_roles ? ', '.$cap : $cap;
+                            $user_roles = $user_roles ? $user_roles.', '.$cap : $cap;
                         
                         if(!$meta_value[$cap])
                             unset($capabilities[$i]);
@@ -406,13 +406,13 @@ function wpue_getUsers_to_tmpfile(){
                     $meta_value = $capabilities;
                 }
             }
-
+            
             $meta_value = apply_filters('wpue_meta_value', $meta_value, $meta_key);
 
             if (is_array($meta_value)) {
                 $meta_value = join(' ', $meta_value);
             }
-
+            
             $result[$user_id]->$meta_key = isset($result[$user_id]->$meta_key) ? ($result[$user_id]->$meta_key).", ".$meta_value : $meta_value;
             
             if(is_object($result[$user_id]->$meta_key))
@@ -422,7 +422,8 @@ function wpue_getUsers_to_tmpfile(){
                 $result[$user_id]->$meta_key = implode(', ', $result[$user_id]->$meta_key);
                 
         }
-
+        
+        
         /* BUDDYPRESS EDITION */
         
         if(wpue_isBP()){
@@ -469,7 +470,6 @@ function wpue_getUsers_to_tmpfile(){
             foreach ($r as $key => $value) {
                 $r->$key = str_replace(array("\r\n", "\n", "\r"), '||BR||', $value);
             }
-            
             $result_string .= serialize($r) . "\n";
         }
         

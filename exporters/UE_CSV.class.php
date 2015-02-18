@@ -107,9 +107,9 @@ class UE_CSV extends A_UserExporter{
         ?>
         <label><input type='checkbox' name='<?php echo __CLASS__?>[include-header]' <?php if($options['include-header']) echo 'checked="checked"'?> value='1'/> <?php _e('include header', 'wp-users-exporter')?></label><br/>
         <strong>\n = <?php _e('new line', 'wp-users-exporter'); ?>, \t = <?php _e('tab', 'wp-users-exporter'); ?></strong><br />
-        <label><?php _e('field delimiter', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[field-delimiter]' value="<?php echo htmlentities(utf8_decode($options['field-delimiter']))?>" /></label><br />
-        <label><?php _e('record delimiter', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[record-delimiter]' value="<?php echo htmlentities(utf8_decode($options['record-delimiter']))?>" /></label> <br />
-        <label><?php _e('double quote escape', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[double-quote-escape]' value="<?php echo htmlentities(utf8_decode($options['double-quote-escape']))?>" /></label>
+        <label><?php _e('field delimiter', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[field-delimiter]' value="<?php echo htmlentities($options['field-delimiter'], ENT_QUOTES, 'UTF-8')?>" /></label><br />
+        <label><?php _e('record delimiter', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[record-delimiter]' value="<?php echo htmlentities($options['record-delimiter'], ENT_QUOTES, 'UTF-8')?>" /></label> <br />
+        <label><?php _e('double quote escape', 'wp-users-exporter')?>: <input type='text' name='<?php echo __CLASS__?>[double-quote-escape]' value="<?php echo htmlentities($options['double-quote-escape'], ENT_QUOTES, 'UTF-8')?>" /></label>
         <?php 
     } 
 }
